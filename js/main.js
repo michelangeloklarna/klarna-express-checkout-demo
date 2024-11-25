@@ -106,6 +106,7 @@ function showConfigWindow() {
     
     // Populate current values
     document.getElementById('client-id').value = KLARNA_CONFIG.CLIENT_ID;
+    document.getElementById('product-name').value = KLARNA_CONFIG.LINE_ITEMS[0].name;
     document.getElementById('currency').value = KLARNA_CONFIG.CURRENCY;
     document.getElementById('amount').value = KLARNA_CONFIG.PAYMENT_AMOUNT;
     
@@ -141,12 +142,51 @@ function hideConfigWindow() {
     document.getElementById('config-window').style.display = 'none';
 }
 
+// Add this function to update the product display
+function updateProductDisplay() {
+    const amount = KLARNA_CONFIG.PAYMENT_AMOUNT;
+    const currency = KLARNA_CONFIG.CURRENCY;
+    const productName = KLARNA_CONFIG.LINE_ITEMS[0].name;
+    
+    // Format the amount based on currency
+    const formatter = new Intl.NumberFormat(undefined, {
+        style: 'currency',
+        currency: currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+
+    // Convert minor units to major units (e.g., cents to dollars)
+    const majorAmount = amount / 100;
+    const formattedPrice = formatter.format(majorAmount);
+    
+    // Update the product name and price display
+    const nameElement = document.querySelector('.product-card h2');
+    const priceElement = document.querySelector('.product-card p');
+    
+    if (nameElement) {
+        nameElement.textContent = `📦 ${productName}`;
+    }
+    if (priceElement) {
+        priceElement.textContent = `Price: ${formattedPrice}`;
+    }
+}
+
+// Update the saveConfiguration function
 function saveConfiguration() {
     const newConfig = {
         CLIENT_ID: document.getElementById('client-id').value,
         CURRENCY: document.getElementById('currency').value,
         PAYMENT_AMOUNT: parseInt(document.getElementById('amount').value),
-        LINE_ITEMS: KLARNA_CONFIG.LINE_ITEMS,
+        LINE_ITEMS: [{
+            name: document.getElementById('product-name').value || 'Sample Product',
+            quantity: 1,
+            totalAmount: parseInt(document.getElementById('amount').value),
+            totalTaxAmount: 0,
+            unitPrice: parseInt(document.getElementById('amount').value),
+            taxRate: 0,
+            imageUrl: "https://example.com/product.jpg"
+        }],
         CUSTOMER_PROFILE: [],
         ALLOWED_COUNTRIES: [],
         BUTTON_CONFIG: {
@@ -179,17 +219,13 @@ function saveConfiguration() {
         return;
     }
     
-    // Update line items amount
-    newConfig.LINE_ITEMS = [{
-        ...KLARNA_CONFIG.LINE_ITEMS[0],
-        totalAmount: newConfig.PAYMENT_AMOUNT,
-        unitPrice: newConfig.PAYMENT_AMOUNT
-    }];
-    
     // Save configuration and reinitialize
     saveConfig(newConfig);
     sdkConsole.log('Configuration saved successfully!', 'success');
     hideConfigWindow();
+    
+    // Update the product display
+    updateProductDisplay();
     
     // Clean up and reinitialize
     deleteKlarnaCookies();
@@ -221,8 +257,9 @@ document.addEventListener('DOMContentLoaded', function() {
         window.KlarnaSDKCallback = initKlarna;
     }
 
-    // Load saved configuration
+    // Load saved configuration and update display
     loadSavedConfig();
+    updateProductDisplay();
     
     // Configuration window handlers
     document.getElementById('config-btn').addEventListener('click', showConfigWindow);
@@ -301,9 +338,42 @@ async function initKlarna() {
             });
         });
 
+        // Add payment update handler
+        klarna.Payment.on("update", async (paymentRequest) => {
+            sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
+            
+            // The customer has successfully completed the payment flow
+            if (paymentRequest.state === "PENDING_CONFIRMATION") {
+                const confirmationToken = paymentRequest.stateContext.confirmationToken;
+                sdkConsole.log('Payment pending confirmation', 'success');
+                sdkConsole.log(`Confirmation Token: ${confirmationToken}`, 'success');
+                
+                try {
+                    // Here you would typically send the confirmation token to your backend
+                    await confirmPayment(confirmationToken);
+                    sdkConsole.log('Payment confirmed successfully!', 'success');
+                    
+                    // Log full state context for debugging
+                    sdkConsole.log('Full state context:', 'info');
+                    sdkConsole.log(JSON.stringify(paymentRequest.stateContext, null, 2), 'info');
+                } catch (error) {
+                    sdkConsole.log(`Error confirming payment: ${error.message}`, 'error');
+                }
+            } else if (paymentRequest.state === "AUTHORIZED") {
+                sdkConsole.log('Payment authorized!', 'success');
+                sdkConsole.log(`Payment Transaction ID: ${paymentRequest.stateContext.payment_transaction_id}`, 'success');
+            } else if (paymentRequest.state === "CANCELLED") {
+                sdkConsole.log('Payment cancelled by user', 'warning');
+            } else if (paymentRequest.state === "ERROR") {
+                sdkConsole.log(`Payment error: ${paymentRequest.stateContext.error_message || 'Unknown error'}`, 'error');
+            }
+        });
+
         // Handle shipping address changes
         klarna.Payment.on("shippingaddresschange", async (paymentRequest, shippingAddress) => {
-            sdkConsole.log('Shipping address changed', 'info');
+            sdkConsole.log('Shipping address changed:', 'info');
+            sdkConsole.log(JSON.stringify(shippingAddress, null, 2), 'info');
+            
             // Return available shipping options for the address
             return {
                 shippingOptions: [
@@ -352,5 +422,28 @@ async function initKlarna() {
 
 async function confirmPayment(confirmationToken) {
     sdkConsole.log(`Confirming payment with token: ${confirmationToken}`, 'info');
-    return new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // In a real implementation, you would make an API call to your backend
+    // Your backend would then call Klarna's API to confirm the payment
+    const mockApiCall = new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (confirmationToken) {
+                resolve({
+                    status: 'success',
+                    payment_transaction_id: 'krn:payment:eu1:transaction:' + Math.random().toString(36).substr(2, 9)
+                });
+            } else {
+                reject(new Error('Invalid confirmation token'));
+            }
+        }, 1000);
+    });
+
+    try {
+        const result = await mockApiCall;
+        sdkConsole.log(`Payment confirmed with transaction ID: ${result.payment_transaction_id}`, 'success');
+        return result;
+    } catch (error) {
+        sdkConsole.log(`Payment confirmation failed: ${error.message}`, 'error');
+        throw error;
+    }
 } 

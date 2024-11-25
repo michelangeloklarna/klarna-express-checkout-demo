@@ -151,7 +151,8 @@ button:active {
     background: #c0c0c0;
     border: 2px solid;
     border-color: #ffffff #808080 #808080 #ffffff;
-    min-width: 400px;
+    width: 90%;
+    max-width: 600px;
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.5);
@@ -185,6 +186,7 @@ button:active {
     padding: 10px;
     border: 1px solid #808080;
     background: #ffffff;
+    overflow: hidden;
 }
 
 .config-section h3 {
@@ -203,8 +205,20 @@ button:active {
     font-size: 12px;
 }
 
-.win95-input, .win95-select {
+.win95-input {
+    width: calc(100% - 12px);
+    box-sizing: border-box;
+    padding: 4px;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+    background: #ffffff;
+    font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif;
+    font-size: 12px;
+}
+
+.win95-select {
     width: 100%;
+    box-sizing: border-box;
     padding: 4px;
     border: 2px solid;
     border-color: #808080 #ffffff #ffffff #808080;
@@ -215,15 +229,22 @@ button:active {
 
 .checkbox-group {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 8px;
+    padding: 4px;
 }
 
 .checkbox-group label {
     font-size: 12px;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 4px;
+    white-space: normal;
+    line-height: 1.2;
+}
+
+.checkbox-group input[type="checkbox"] {
+    margin-top: 2px;
 }
 
 .button-group {
