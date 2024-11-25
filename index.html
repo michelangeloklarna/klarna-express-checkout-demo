@@ -22,6 +22,129 @@
                 <!-- Loading indicator -->
                 <div style="text-align: center; padding: 10px;">Loading Klarna button...</div>
             </div>
+            <div class="action-buttons">
+                <button id="config-btn" class="win95-button">⚙️ Settings</button>
+                <button id="new-session-btn" class="win95-button">🔄 New Session</button>
+            </div>
+        </div>
+
+        <!-- Add Configuration Window -->
+        <div id="config-window" class="window" style="display: none;">
+            <div class="window-title-bar">
+                <span>⚙️ Klarna Configuration</span>
+                <button class="window-close">✕</button>
+            </div>
+            <div class="window-content">
+                <div class="config-section">
+                    <h3>Basic Settings</h3>
+                    <div class="form-group">
+                        <label>Client ID:</label>
+                        <input type="text" id="client-id" class="win95-input">
+                    </div>
+                    <div class="form-group">
+                        <label>Currency:</label>
+                        <select id="currency" class="win95-select">
+                            <option value="AUD">AUD - Australian Dollar</option>
+                            <option value="CAD">CAD - Canadian Dollar</option>
+                            <option value="CHF">CHF - Swiss Franc</option>
+                            <option value="CZK">CZK - Czech Koruna</option>
+                            <option value="DKK">DKK - Danish Krone</option>
+                            <option value="EUR">EUR - Euro</option>
+                            <option value="GBP">GBP - British Pound</option>
+                            <option value="HUF">HUF - Hungarian Forint</option>
+                            <option value="MXN">MXN - Mexican Peso</option>
+                            <option value="NOK">NOK - Norwegian Krone</option>
+                            <option value="NZD">NZD - New Zealand Dollar</option>
+                            <option value="PLN">PLN - Polish Złoty</option>
+                            <option value="RON">RON - Romanian Leu</option>
+                            <option value="SEK">SEK - Swedish Krona</option>
+                            <option value="USD">USD - US Dollar</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Amount (in minor units):</label>
+                        <input type="number" id="amount" class="win95-input">
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Button Settings</h3>
+                    <div class="form-group">
+                        <label>Shape:</label>
+                        <select id="button-shape" class="win95-select">
+                            <option value="default">Default</option>
+                            <option value="rectangular">Rectangular</option>
+                            <option value="pill">Pill</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Theme:</label>
+                        <select id="button-theme" class="win95-select">
+                            <option value="default">Default</option>
+                            <option value="light">Light</option>
+                            <option value="dark">Dark</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Label:</label>
+                        <select id="button-label" class="win95-select">
+                            <option value="buy_with_klarna">Buy with Klarna</option>
+                            <option value="pay_with_klarna">Pay with Klarna</option>
+                            <option value="klarna_payments">Klarna Payments</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Customer Profile Settings</h3>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="profile-email" checked> Email</label>
+                        <label><input type="checkbox" id="profile-name" checked> Name</label>
+                        <label><input type="checkbox" id="profile-phone" checked> Phone</label>
+                        <label><input type="checkbox" id="profile-billing-address"> Billing Address</label>
+                        <label><input type="checkbox" id="profile-locale"> Locale</label>
+                        <label><input type="checkbox" id="profile-national-id"> National ID</label>
+                        <label><input type="checkbox" id="profile-dob"> Date of Birth</label>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>Shipping Countries</h3>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="country-au"> Australia</label>
+                        <label><input type="checkbox" id="country-at"> Austria</label>
+                        <label><input type="checkbox" id="country-be"> Belgium</label>
+                        <label><input type="checkbox" id="country-ca"> Canada</label>
+                        <label><input type="checkbox" id="country-cz"> Czech Republic</label>
+                        <label><input type="checkbox" id="country-dk"> Denmark</label>
+                        <label><input type="checkbox" id="country-fi"> Finland</label>
+                        <label><input type="checkbox" id="country-fr"> France</label>
+                        <label><input type="checkbox" id="country-de"> Germany</label>
+                        <label><input type="checkbox" id="country-gr"> Greece</label>
+                        <label><input type="checkbox" id="country-hu"> Hungary</label>
+                        <label><input type="checkbox" id="country-ie"> Ireland</label>
+                        <label><input type="checkbox" id="country-it"> Italy</label>
+                        <label><input type="checkbox" id="country-mx"> Mexico</label>
+                        <label><input type="checkbox" id="country-nl"> Netherlands</label>
+                        <label><input type="checkbox" id="country-nz"> New Zealand</label>
+                        <label><input type="checkbox" id="country-no"> Norway</label>
+                        <label><input type="checkbox" id="country-pl"> Poland</label>
+                        <label><input type="checkbox" id="country-pt"> Portugal</label>
+                        <label><input type="checkbox" id="country-ro"> Romania</label>
+                        <label><input type="checkbox" id="country-sk"> Slovakia</label>
+                        <label><input type="checkbox" id="country-es"> Spain</label>
+                        <label><input type="checkbox" id="country-se"> Sweden</label>
+                        <label><input type="checkbox" id="country-ch"> Switzerland</label>
+                        <label><input type="checkbox" id="country-gb"> United Kingdom</label>
+                        <label><input type="checkbox" id="country-us"> United States</label>
+                    </div>
+                </div>
+
+                <div class="button-group">
+                    <button id="save-config" class="win95-button">💾 Save</button>
+                    <button id="reset-config" class="win95-button">↺ Reset</button>
+                </div>
+            </div>
         </div>
 
         <div class="console-window">
