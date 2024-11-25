@@ -204,17 +204,24 @@ async function initKlarna() {
             sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
             
             if (paymentRequest.state === "PENDING_CONFIRMATION") {
-                // Log the exact format from documentation
-                sdkConsole.log('Payment request:', 'info');
-                sdkConsole.log(JSON.stringify({
+                // Format and log the payment request once
+                const formattedRequest = {
                     paymentRequestId: paymentRequest.paymentRequestId,
                     state: paymentRequest.state,
-                    stateContext: paymentRequest.stateContext
-                }, null, 2), 'info');
+                    stateContext: {
+                        state: paymentRequest.stateContext.state,
+                        shipping: paymentRequest.stateContext.shipping,
+                        paymentConfirmationToken: paymentRequest.stateContext.paymentConfirmationToken,
+                        klarnaCustomer: paymentRequest.stateContext.klarnaCustomer
+                    }
+                };
 
-                const confirmationToken = paymentRequest.stateContext.confirmationToken;
+                sdkConsole.log('Payment request:', 'info');
+                sdkConsole.log(formattedRequest, 'info');
+
+                const confirmationToken = paymentRequest.stateContext.paymentConfirmationToken;
                 if (confirmationToken) {
-                    sdkConsole.log('Confirmation Token received:', 'success');
+                    sdkConsole.log('Confirmation Token:', 'success');
                     sdkConsole.log(confirmationToken, 'success');
                     
                     try {
