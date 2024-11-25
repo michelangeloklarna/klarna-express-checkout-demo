@@ -1,0 +1,64 @@
+body {
+    background-color: #c0c0c0;
+    font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif;
+    margin: 0;
+    padding: 16px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 2px;
+}
+
+h1 {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    padding: 2px 4px;
+    margin: 0;
+    margin-bottom: 8px;
+}
+
+.product-card {
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 16px;
+    margin-top: 16px;
+    background-color: #c0c0c0;
+}
+
+.product-card h2 {
+    font-size: 14px;
+    margin-top: 0;
+}
+
+.product-card p {
+    font-size: 12px;
+}
+
+#kec-button-container {
+    margin-top: 16px;
+    padding: 2px;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Windows 95 button style (will affect any regular buttons) */
+button {
+    background-color: #c0c0c0;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    padding: 4px 8px;
+    font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+button:active {
+    border-color: #808080 #ffffff #ffffff #808080;
+} 
