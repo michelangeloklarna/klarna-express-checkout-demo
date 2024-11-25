@@ -94,7 +94,7 @@ button:active {
     font-family: "Courier New", monospace;
     font-size: 12px;
     padding: 10px;
-    height: 200px;
+    height: 300px;
     overflow-y: auto;
     border: 2px solid;
     border-color: #808080 #ffffff #ffffff #808080;
@@ -298,4 +298,106 @@ button:active {
     background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 3L5 7L9 3' stroke='black'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: center;
-} 
+}
+
+/* Add these styles for JSON formatting */
+.json-content {
+    margin: 4px 0 4px 20px;
+    font-family: "Courier New", monospace;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 8px;
+    border-left: 2px solid #00ff00;
+}
+
+.console-line.error .json-content {
+    border-left-color: #ff0000;
+}
+
+.console-line.warning .json-content {
+    border-left-color: #ffff00;
+}
+
+.console-line.success .json-content {
+    border-left-color: #00ff00;
+}
+
+/* Add these styles for line items */
+.line-item {
+    background: #f0f0f0;
+    border: 1px solid #808080;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.line-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.line-item-header h5 {
+    margin: 0;
+    font-size: 12px;
+    color: #000080;
+}
+
+.line-item .remove-line-item {
+    padding: 2px 6px;
+    font-size: 10px;
+}
+
+#add-line-item {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+.line-item .form-group {
+    margin-bottom: 8px;
+}
+
+.line-item input {
+    width: calc(100% - 12px);
+}
+
+/* Add these styles for product display */
+.product-item {
+    border-bottom: 1px solid #808080;
+    padding: 10px 0;
+    margin-bottom: 10px;
+}
+
+.product-item:last-of-type {
+    border-bottom: none;
+}
+
+.product-item h2 {
+    font-size: 14px;
+    margin: 0 0 8px 0;
+    color: #000080;
+}
+
+.product-details {
+    margin-left: 20px;
+}
+
+.product-details p {
+    margin: 4px 0;
+    font-size: 12px;
+}
+
+.total-amount {
+    margin-top: 16px;
+    padding-top: 10px;
+    border-top: 2px solid #808080;
+}
+
+.total-amount p {
+    font-size: 14px;
+    font-weight: bold;
+    text-align: right;
+    margin: 0;
+}
+ 

@@ -31,7 +31,8 @@ const KLARNA_CONFIG = {
     BUTTON_CONFIG: {
         shape: "default",
         theme: "default",
-        label: "buy_with_klarna"
+        label: "buy_with_klarna",
+        handleShipping: true
     },
     AVAILABLE_COUNTRIES: {
         'AU': { name: 'Australia', currency: 'AUD', locales: ['en-AU'] },
