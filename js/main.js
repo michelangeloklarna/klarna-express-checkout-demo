@@ -53,20 +53,237 @@ function deleteKlarnaCookies() {
     });
 }
 
-// Modify the reinitializeKlarna function
+// Add this at the top with other global variables
+let currentKlarnaButton = null;
+
+// Update the initKlarna function to handle button cleanup
+async function initKlarna() {
+    try {
+        sdkConsole.log('Starting Klarna initialization...', 'info');
+        
+        // Initialize Klarna SDK with client ID
+        const klarna = await Klarna.init({
+            clientId: KLARNA_CONFIG.CLIENT_ID
+        });
+        
+        sdkConsole.log('Klarna SDK initialized successfully!', 'success');
+
+        // Cleanup existing button if it exists
+        if (currentKlarnaButton) {
+            try {
+                sdkConsole.log('Cleaning up existing button...', 'info');
+                await currentKlarnaButton.unmount();
+                currentKlarnaButton = null;
+            } catch (error) {
+                sdkConsole.log(`Error cleaning up button: ${error.message}`, 'warning');
+            }
+        }
+
+        // Create and mount the Express Checkout button with updated config
+        sdkConsole.log('Creating Express Checkout button...', 'info');
+        currentKlarnaButton = klarna.Payment.button({
+            id: "klarna-payment-button",
+            shape: KLARNA_CONFIG.BUTTON_CONFIG.shape,
+            theme: KLARNA_CONFIG.BUTTON_CONFIG.theme,
+            label: KLARNA_CONFIG.BUTTON_CONFIG.label,
+            styles: {
+                button: {
+                    'border-radius': KLARNA_CONFIG.BUTTON_CONFIG.shape === 'pill' ? '50px' : '0',
+                    'font-family': '"MS Sans Serif", "Segoe UI", Tahoma, sans-serif',
+                    'font-size': '12px',
+                    'padding': '8px',
+                    'width': '100%'
+                }
+            }
+        });
+
+        // Clear the container before mounting
+        const container = document.getElementById('kec-button-container');
+        if (container) {
+            container.innerHTML = '';
+            await currentKlarnaButton.mount("#kec-button-container");
+            sdkConsole.log('Button mounted successfully!', 'success');
+        }
+
+        // Handle button click with all configuration options
+        currentKlarnaButton.on("click", (paymentRequest) => {
+            sdkConsole.log('Button clicked - initiating payment...', 'info');
+            
+            // Get the selected country's locale
+            const firstSelectedCountry = KLARNA_CONFIG.ALLOWED_COUNTRIES[0];
+            const defaultLocale = firstSelectedCountry ? 
+                KLARNA_CONFIG.AVAILABLE_COUNTRIES[firstSelectedCountry].locales[0] : 
+                'en-US';
+
+            return paymentRequest.initiate({
+                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT,
+                currency: KLARNA_CONFIG.CURRECY,
+                locale: defaultLocale, // Use the first locale of the first selected country
+                supplementaryPurchaseData: {
+                    lineItems: KLARNA_CONFIG.LINE_ITEMS
+                },
+                config: {
+                    requestCustomerProfile: KLARNA_CONFIG.CUSTOMER_PROFILE,
+                    requestShippingData: [
+                        "SHIPPING_ADDRESS",
+                        "SHIPPING_OPTION"
+                    ],
+                    allowedShippingCountries: KLARNA_CONFIG.ALLOWED_COUNTRIES,
+                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US', // Use first selected country
+                    locale: defaultLocale
+                }
+            });
+        });
+
+        // Update the payment update handler in initKlarna function
+        klarna.Payment.on("update", async (paymentRequest) => {
+            try {
+                sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
+                
+                // The customer has successfully completed the payment flow
+                if (paymentRequest.state === "PENDING_CONFIRMATION") {
+                    // Log the full payment request for debugging
+                    sdkConsole.log('Full payment request:', 'info');
+                    sdkConsole.log(JSON.stringify({
+                        paymentRequestId: paymentRequest.paymentRequestId,
+                        state: paymentRequest.state,
+                        stateContext: paymentRequest.stateContext
+                    }, null, 2), 'info');
+
+                    // Get confirmation token from stateContext
+                    const confirmationToken = paymentRequest.stateContext.confirmationToken;
+                    
+                    if (confirmationToken) {
+                        sdkConsole.log('Payment pending confirmation', 'success');
+                        sdkConsole.log('Confirmation Token:', 'success');
+                        sdkConsole.log(confirmationToken, 'success');
+                        
+                        try {
+                            // Here you would send the confirmation token to your backend
+                            await confirmPayment(confirmationToken);
+                            sdkConsole.log('Payment confirmed successfully!', 'success');
+                        } catch (error) {
+                            sdkConsole.log(`Error confirming payment: ${error.message}`, 'error');
+                        }
+                    } else {
+                        sdkConsole.log('Error: No confirmation token found in stateContext', 'error');
+                    }
+                } else if (paymentRequest.state === "AUTHORIZED") {
+                    sdkConsole.log('Payment authorized!', 'success');
+                    if (paymentRequest.stateContext.authorized_payment_method) {
+                        sdkConsole.log('Authorized Payment Method:', 'success');
+                        sdkConsole.log(JSON.stringify(paymentRequest.stateContext.authorized_payment_method, null, 2), 'success');
+                    }
+                } else if (paymentRequest.state === "CANCELLED") {
+                    sdkConsole.log('Payment cancelled by user', 'warning');
+                } else if (paymentRequest.state === "ERROR") {
+                    const errorMessage = paymentRequest.stateContext.error_message || 'Unknown error';
+                    sdkConsole.log(`Payment error: ${errorMessage}`, 'error');
+                }
+            } catch (error) {
+                sdkConsole.log(`Error handling payment update: ${error.message}`, 'error');
+                console.error('Payment update error:', error);
+            }
+        });
+
+        // Handle shipping address changes
+        klarna.Payment.on("shippingaddresschange", async (paymentRequest, shippingAddress) => {
+            sdkConsole.log('Shipping address changed:', 'info');
+            sdkConsole.log(JSON.stringify(shippingAddress, null, 2), 'info');
+            
+            // Return available shipping options for the address
+            return {
+                shippingOptions: [
+                    {
+                        shippingOptionReference: "standard",
+                        amount: 500,
+                        displayName: "Standard Shipping",
+                        description: "3-5 business days",
+                        shippingType: "TO_DOOR"
+                    },
+                    {
+                        shippingOptionReference: "express",
+                        amount: 1000,
+                        displayName: "Express Shipping",
+                        description: "1-2 business days",
+                        shippingType: "TO_DOOR"
+                    }
+                ]
+            };
+        });
+
+        // Handle shipping option selection
+        klarna.Payment.on("shippingoptionselect", async (paymentRequest, shippingOption) => {
+            sdkConsole.log('Shipping option selected', 'info');
+            // Update order total based on selected shipping option
+            const shippingCost = shippingOption.shippingOptionReference === "express" ? 1000 : 500;
+            return {
+                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT + shippingCost
+            };
+        });
+
+        // Enable the new session button after successful initialization
+        enableNewSessionButton();
+
+    } catch (error) {
+        sdkConsole.log(`Error: ${error.message}`, 'error');
+        console.error("Error initializing Klarna:", error);
+        const container = document.getElementById('kec-button-container');
+        if (container) {
+            container.innerHTML = `<div style="color: red;">Error loading Klarna button. Please refresh the page.</div>`;
+        }
+        // Enable the button even if initialization fails
+        enableNewSessionButton();
+    }
+}
+
+async function confirmPayment(confirmationToken) {
+    sdkConsole.log(`Confirming payment with token: ${confirmationToken}`, 'info');
+    
+    // In a real implementation, you would make an API call to your backend
+    // Your backend would then call Klarna's API to confirm the payment
+    const mockApiCall = new Promise((resolve, reject) => {
+        setTimeout(() => {
+            if (confirmationToken) {
+                resolve({
+                    status: 'success',
+                    payment_transaction_id: 'krn:payment:eu1:transaction:' + Math.random().toString(36).substr(2, 9)
+                });
+            } else {
+                reject(new Error('Invalid confirmation token'));
+            }
+        }, 1000);
+    });
+
+    try {
+        const result = await mockApiCall;
+        sdkConsole.log(`Payment confirmed with transaction ID: ${result.payment_transaction_id}`, 'success');
+        return result;
+    } catch (error) {
+        sdkConsole.log(`Payment confirmation failed: ${error.message}`, 'error');
+        throw error;
+    }
+}
+
+// Update the reinitializeKlarna function
 async function reinitializeKlarna() {
     sdkConsole.log('Reinitializing Klarna session...', 'info');
     
     // Disable the button during reinitialization
     disableNewSessionButton();
     
-    // Clear the button container
-    const container = document.getElementById('kec-button-container');
-    if (container) {
-        container.innerHTML = '<div style="text-align: center; padding: 10px;">Reinitializing Klarna button...</div>';
-    }
-
     try {
+        // Cleanup existing button if it exists
+        if (currentKlarnaButton) {
+            try {
+                sdkConsole.log('Cleaning up existing button...', 'info');
+                await currentKlarnaButton.unmount();
+                currentKlarnaButton = null;
+            } catch (error) {
+                sdkConsole.log(`Error cleaning up button: ${error.message}`, 'warning');
+            }
+        }
+
         // Delete Klarna cookies before reinitializing
         deleteKlarnaCookies();
         
@@ -269,181 +486,4 @@ document.addEventListener('DOMContentLoaded', function() {
         localStorage.removeItem('klarnaConfig');
         location.reload();
     });
-});
-
-async function initKlarna() {
-    try {
-        sdkConsole.log('Starting Klarna initialization...', 'info');
-        
-        // Initialize Klarna SDK with client ID
-        const klarna = await Klarna.init({
-            clientId: KLARNA_CONFIG.CLIENT_ID
-        });
-        
-        sdkConsole.log('Klarna SDK initialized successfully!', 'success');
-
-        // Create and mount the Express Checkout button with updated config
-        sdkConsole.log('Creating Express Checkout button...', 'info');
-        const klarnaExpressCheckout = klarna.Payment.button({
-            id: "klarna-payment-button",
-            shape: KLARNA_CONFIG.BUTTON_CONFIG.shape,
-            theme: KLARNA_CONFIG.BUTTON_CONFIG.theme,
-            label: KLARNA_CONFIG.BUTTON_CONFIG.label,
-            styles: {
-                button: {
-                    'border-radius': KLARNA_CONFIG.BUTTON_CONFIG.shape === 'pill' ? '50px' : '0',
-                    'font-family': '"MS Sans Serif", "Segoe UI", Tahoma, sans-serif',
-                    'font-size': '12px',
-                    'padding': '8px',
-                    'width': '100%'
-                }
-            }
-        });
-
-        // Clear the container before mounting
-        const container = document.getElementById('kec-button-container');
-        if (container) {
-            container.innerHTML = '';
-            klarnaExpressCheckout.mount("#kec-button-container");
-            sdkConsole.log('Button mounted successfully!', 'success');
-        }
-
-        // Handle button click with all configuration options
-        klarnaExpressCheckout.on("click", (paymentRequest) => {
-            sdkConsole.log('Button clicked - initiating payment...', 'info');
-            
-            // Get the selected country's locale
-            const firstSelectedCountry = KLARNA_CONFIG.ALLOWED_COUNTRIES[0];
-            const defaultLocale = firstSelectedCountry ? 
-                KLARNA_CONFIG.AVAILABLE_COUNTRIES[firstSelectedCountry].locales[0] : 
-                'en-US';
-
-            return paymentRequest.initiate({
-                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT,
-                currency: KLARNA_CONFIG.CURRENCY,
-                locale: defaultLocale, // Use the first locale of the first selected country
-                supplementaryPurchaseData: {
-                    lineItems: KLARNA_CONFIG.LINE_ITEMS
-                },
-                config: {
-                    requestCustomerProfile: KLARNA_CONFIG.CUSTOMER_PROFILE,
-                    requestShippingData: [
-                        "SHIPPING_ADDRESS",
-                        "SHIPPING_OPTION"
-                    ],
-                    allowedShippingCountries: KLARNA_CONFIG.ALLOWED_COUNTRIES,
-                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US', // Use first selected country
-                    locale: defaultLocale
-                }
-            });
-        });
-
-        // Add payment update handler
-        klarna.Payment.on("update", async (paymentRequest) => {
-            sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
-            
-            // The customer has successfully completed the payment flow
-            if (paymentRequest.state === "PENDING_CONFIRMATION") {
-                const confirmationToken = paymentRequest.stateContext.confirmationToken;
-                sdkConsole.log('Payment pending confirmation', 'success');
-                sdkConsole.log(`Confirmation Token: ${confirmationToken}`, 'success');
-                
-                try {
-                    // Here you would typically send the confirmation token to your backend
-                    await confirmPayment(confirmationToken);
-                    sdkConsole.log('Payment confirmed successfully!', 'success');
-                    
-                    // Log full state context for debugging
-                    sdkConsole.log('Full state context:', 'info');
-                    sdkConsole.log(JSON.stringify(paymentRequest.stateContext, null, 2), 'info');
-                } catch (error) {
-                    sdkConsole.log(`Error confirming payment: ${error.message}`, 'error');
-                }
-            } else if (paymentRequest.state === "AUTHORIZED") {
-                sdkConsole.log('Payment authorized!', 'success');
-                sdkConsole.log(`Payment Transaction ID: ${paymentRequest.stateContext.payment_transaction_id}`, 'success');
-            } else if (paymentRequest.state === "CANCELLED") {
-                sdkConsole.log('Payment cancelled by user', 'warning');
-            } else if (paymentRequest.state === "ERROR") {
-                sdkConsole.log(`Payment error: ${paymentRequest.stateContext.error_message || 'Unknown error'}`, 'error');
-            }
-        });
-
-        // Handle shipping address changes
-        klarna.Payment.on("shippingaddresschange", async (paymentRequest, shippingAddress) => {
-            sdkConsole.log('Shipping address changed:', 'info');
-            sdkConsole.log(JSON.stringify(shippingAddress, null, 2), 'info');
-            
-            // Return available shipping options for the address
-            return {
-                shippingOptions: [
-                    {
-                        shippingOptionReference: "standard",
-                        amount: 500,
-                        displayName: "Standard Shipping",
-                        description: "3-5 business days",
-                        shippingType: "TO_DOOR"
-                    },
-                    {
-                        shippingOptionReference: "express",
-                        amount: 1000,
-                        displayName: "Express Shipping",
-                        description: "1-2 business days",
-                        shippingType: "TO_DOOR"
-                    }
-                ]
-            };
-        });
-
-        // Handle shipping option selection
-        klarna.Payment.on("shippingoptionselect", async (paymentRequest, shippingOption) => {
-            sdkConsole.log('Shipping option selected', 'info');
-            // Update order total based on selected shipping option
-            const shippingCost = shippingOption.shippingOptionReference === "express" ? 1000 : 500;
-            return {
-                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT + shippingCost
-            };
-        });
-
-        // Enable the new session button after successful initialization
-        enableNewSessionButton();
-
-    } catch (error) {
-        sdkConsole.log(`Error: ${error.message}`, 'error');
-        console.error("Error initializing Klarna:", error);
-        const container = document.getElementById('kec-button-container');
-        if (container) {
-            container.innerHTML = `<div style="color: red;">Error loading Klarna button. Please refresh the page.</div>`;
-        }
-        // Enable the button even if initialization fails
-        enableNewSessionButton();
-    }
-}
-
-async function confirmPayment(confirmationToken) {
-    sdkConsole.log(`Confirming payment with token: ${confirmationToken}`, 'info');
-    
-    // In a real implementation, you would make an API call to your backend
-    // Your backend would then call Klarna's API to confirm the payment
-    const mockApiCall = new Promise((resolve, reject) => {
-        setTimeout(() => {
-            if (confirmationToken) {
-                resolve({
-                    status: 'success',
-                    payment_transaction_id: 'krn:payment:eu1:transaction:' + Math.random().toString(36).substr(2, 9)
-                });
-            } else {
-                reject(new Error('Invalid confirmation token'));
-            }
-        }, 1000);
-    });
-
-    try {
-        const result = await mockApiCall;
-        sdkConsole.log(`Payment confirmed with transaction ID: ${result.payment_transaction_id}`, 'success');
-        return result;
-    } catch (error) {
-        sdkConsole.log(`Payment confirmation failed: ${error.message}`, 'error');
-        throw error;
-    }
-} 
+}); 
