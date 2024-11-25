@@ -117,8 +117,8 @@ async function initKlarna() {
 
             return paymentRequest.initiate({
                 paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT,
-                currency: KLARNA_CONFIG.CURRECY,
-                locale: defaultLocale, // Use the first locale of the first selected country
+                currency: KLARNA_CONFIG.CURRENCY,
+                locale: defaultLocale,
                 supplementaryPurchaseData: {
                     lineItems: KLARNA_CONFIG.LINE_ITEMS
                 },
@@ -129,7 +129,7 @@ async function initKlarna() {
                         "SHIPPING_OPTION"
                     ],
                     allowedShippingCountries: KLARNA_CONFIG.ALLOWED_COUNTRIES,
-                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US', // Use first selected country
+                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US',
                     locale: defaultLocale
                 }
             });
