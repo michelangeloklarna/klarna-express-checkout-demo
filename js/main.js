@@ -95,7 +95,7 @@ async function initKlarna() {
                         "SHIPPING_ADDRESS",
                         "SHIPPING_OPTION"
                     ],
-                    allowedShippingCountries: ["DE", "AT", "GB", "NL"]
+                    allowedShippingCountries: ["DE", "AT", "GB", "NL", "IT"]
                 }
             });
         });
