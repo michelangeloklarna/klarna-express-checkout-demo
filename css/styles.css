@@ -61,4 +61,58 @@ button {
 
 button:active {
     border-color: #808080 #ffffff #ffffff #808080;
+}
+
+/* Console Window Styles */
+.console-window {
+    margin-top: 20px;
+    border: 2px solid;
+    border-color: #ffffff #808080 #808080 #ffffff;
+    background: #c0c0c0;
+}
+
+.console-title-bar {
+    background: linear-gradient(90deg, #000080, #1084d0);
+    color: white;
+    padding: 3px 6px;
+    font-size: 14px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.console-title-bar button {
+    font-size: 11px;
+    padding: 1px 5px;
+    height: 20px;
+}
+
+.console-content {
+    background: #000000;
+    color: #00ff00;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    padding: 10px;
+    height: 200px;
+    overflow-y: auto;
+    border: 2px solid;
+    border-color: #808080 #ffffff #ffffff #808080;
+}
+
+.console-line {
+    margin: 2px 0;
+    line-height: 1.3;
+}
+
+.console-line.error {
+    color: #ff0000;
+}
+
+.console-line.warning {
+    color: #ffff00;
+}
+
+.console-line.success {
+    color: #00ff00;
 } 

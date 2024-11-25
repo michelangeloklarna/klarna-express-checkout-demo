@@ -8,9 +8,9 @@ const KLARNA_CONFIG = {
             name: "Sample Product",
             quantity: 1,
             totalAmount: 1000,
-            totalTaxAmount: 200,
+            totalTaxAmount: 0,
             unitPrice: 1000,
-            taxRate: 2000, // 20%
+            taxRate: 0, // 20%
             imageUrl: "https://example.com/product.jpg"
         }
     ]

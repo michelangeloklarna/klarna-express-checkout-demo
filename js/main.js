@@ -1,30 +1,84 @@
-window.KlarnaSDKCallback = async function() {
+// Console logging system
+const sdkConsole = {
+    log: function(message, type = 'info') {
+        const console = document.getElementById('sdk-console');
+        if (console) {
+            const line = document.createElement('div');
+            line.className = `console-line ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            line.textContent = `[${timestamp}] ${message}`;
+            console.appendChild(line);
+            console.scrollTop = console.scrollHeight;
+        }
+    },
+    clear: function() {
+        const console = document.getElementById('sdk-console');
+        if (console) {
+            console.innerHTML = '<div class="console-line">Console cleared...</div>';
+        }
+    }
+};
+
+// Wait for DOM to be fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Set up console clear button
+    const clearButton = document.querySelector('.console-clear');
+    if (clearButton) {
+        clearButton.addEventListener('click', sdkConsole.clear);
+    }
+
+    sdkConsole.log('Initializing Klarna SDK...', 'info');
+    
+    // Check if Klarna object exists
+    if (window.Klarna) {
+        sdkConsole.log('Klarna SDK found, initializing...', 'info');
+        initKlarna();
+    } else {
+        sdkConsole.log('Waiting for Klarna SDK to load...', 'warning');
+        window.KlarnaSDKCallback = initKlarna;
+    }
+});
+
+async function initKlarna() {
     try {
+        sdkConsole.log('Starting Klarna initialization...', 'info');
+        
         // Initialize Klarna SDK
         const klarna = await Klarna.init({
             clientId: KLARNA_CONFIG.CLIENT_ID
         });
+        
+        sdkConsole.log('Klarna SDK initialized successfully!', 'success');
 
         // Create and mount the Express Checkout button
+        sdkConsole.log('Creating Express Checkout button...', 'info');
         const klarnaExpressCheckout = klarna.Payment.button({
             id: "klarna-payment-button",
             shape: "rectangular",
             theme: "default",
+            label: "Buy with Klarna",
             styles: {
                 button: {
                     'border-radius': '0',
                     'font-family': '"MS Sans Serif", "Segoe UI", Tahoma, sans-serif',
                     'font-size': '12px',
-                    'padding': '8px'
+                    'padding': '8px',
+                    'width': '100%'
                 }
             }
         });
 
-        // Mount the button to the container
-        klarnaExpressCheckout.mount("#kec-button-container");
+        // Clear the container before mounting
+        const container = document.getElementById('kec-button-container');
+        if (container) {
+            container.innerHTML = '';
+            klarnaExpressCheckout.mount("#kec-button-container");
+            sdkConsole.log('Button mounted successfully!', 'success');
+        }
 
         // Handle button click
         klarnaExpressCheckout.on("click", (paymentRequest) => {
+            sdkConsole.log('Button clicked - initiating payment...', 'info');
             return paymentRequest.initiate({
                 paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT,
                 currency: KLARNA_CONFIG.CURRENCY,
@@ -46,61 +100,17 @@ window.KlarnaSDKCallback = async function() {
             });
         });
 
-        // Handle shipping address changes
-        klarna.Payment.on("shippingaddresschange", async (paymentRequest, shippingAddress) => {
-            // Return available shipping options for the address
-            return {
-                shippingOptions: [
-                    {
-                        shippingOptionReference: "standard",
-                        amount: 500,
-                        displayName: "Standard Shipping",
-                        description: "3-5 business days",
-                        shippingType: "TO_DOOR"
-                    },
-                    {
-                        shippingOptionReference: "express",
-                        amount: 1000,
-                        displayName: "Express Shipping",
-                        description: "1-2 business days",
-                        shippingType: "TO_DOOR"
-                    }
-                ]
-            };
-        });
-
-        // Handle shipping option selection
-        klarna.Payment.on("shippingoptionselect", async (paymentRequest, shippingOption) => {
-            // Update order total based on selected shipping option
-            const shippingCost = shippingOption.shippingOptionReference === "express" ? 1000 : 500;
-            return {
-                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT + shippingCost
-            };
-        });
-
-        // Handle payment updates
-        klarna.Payment.on("update", async (paymentRequest) => {
-            if (paymentRequest.state === "PENDING_CONFIRMATION") {
-                const confirmationToken = paymentRequest.stateContext.confirmationToken;
-                try {
-                    // Here you would typically send the confirmation token to your backend
-                    await confirmPayment(confirmationToken);
-                    console.log("Payment confirmed successfully!");
-                } catch (error) {
-                    console.error("Error confirming payment:", error);
-                }
-            }
-        });
-
     } catch (error) {
+        sdkConsole.log(`Error: ${error.message}`, 'error');
         console.error("Error initializing Klarna:", error);
+        const container = document.getElementById('kec-button-container');
+        if (container) {
+            container.innerHTML = `<div style="color: red;">Error loading Klarna button. Please refresh the page.</div>`;
+        }
     }
-};
+}
 
-// Mock function to simulate backend payment confirmation
 async function confirmPayment(confirmationToken) {
-    // In a real implementation, this would make an API call to your backend
-    // Your backend would then call Klarna's API to confirm the payment
-    console.log("Confirming payment with token:", confirmationToken);
+    sdkConsole.log(`Confirming payment with token: ${confirmationToken}`, 'info');
     return new Promise(resolve => setTimeout(resolve, 1000));
 } 
