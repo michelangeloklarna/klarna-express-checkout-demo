@@ -120,7 +120,14 @@ async function initKlarna() {
                 currency: KLARNA_CONFIG.CURRENCY,
                 locale: defaultLocale,
                 supplementaryPurchaseData: {
-                    lineItems: KLARNA_CONFIG.LINE_ITEMS
+                    lineItems: [{
+                        name: KLARNA_CONFIG.LINE_ITEMS[0].name,
+                        quantity: 1,
+                        totalAmount: KLARNA_CONFIG.PAYMENT_AMOUNT,
+                        totalTaxAmount: 0,
+                        unitPrice: KLARNA_CONFIG.PAYMENT_AMOUNT,
+                        taxRate: 0
+                    }]
                 },
                 config: {
                     requestCustomerProfile: KLARNA_CONFIG.CUSTOMER_PROFILE,
@@ -129,60 +136,36 @@ async function initKlarna() {
                         "SHIPPING_OPTION"
                     ],
                     allowedShippingCountries: KLARNA_CONFIG.ALLOWED_COUNTRIES,
-                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US',
-                    locale: defaultLocale
+                    purchaseCountry: KLARNA_CONFIG.ALLOWED_COUNTRIES[0] || 'US'
                 }
             });
         });
 
         // Update the payment update handler in initKlarna function
         klarna.Payment.on("update", async (paymentRequest) => {
-            try {
-                sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
-                
-                // The customer has successfully completed the payment flow
-                if (paymentRequest.state === "PENDING_CONFIRMATION") {
-                    // Log the full payment request for debugging
-                    sdkConsole.log('Full payment request:', 'info');
-                    sdkConsole.log(JSON.stringify({
-                        paymentRequestId: paymentRequest.paymentRequestId,
-                        state: paymentRequest.state,
-                        stateContext: paymentRequest.stateContext
-                    }, null, 2), 'info');
+            sdkConsole.log(`Payment state updated: ${paymentRequest.state}`, 'info');
+            
+            if (paymentRequest.state === "PENDING_CONFIRMATION") {
+                // Log the exact format from documentation
+                sdkConsole.log('Payment request:', 'info');
+                sdkConsole.log(JSON.stringify({
+                    paymentRequestId: paymentRequest.paymentRequestId,
+                    state: paymentRequest.state,
+                    stateContext: paymentRequest.stateContext
+                }, null, 2), 'info');
 
-                    // Get confirmation token from stateContext
-                    const confirmationToken = paymentRequest.stateContext.confirmationToken;
+                const confirmationToken = paymentRequest.stateContext.confirmationToken;
+                if (confirmationToken) {
+                    sdkConsole.log('Confirmation Token received:', 'success');
+                    sdkConsole.log(confirmationToken, 'success');
                     
-                    if (confirmationToken) {
-                        sdkConsole.log('Payment pending confirmation', 'success');
-                        sdkConsole.log('Confirmation Token:', 'success');
-                        sdkConsole.log(confirmationToken, 'success');
-                        
-                        try {
-                            // Here you would send the confirmation token to your backend
-                            await confirmPayment(confirmationToken);
-                            sdkConsole.log('Payment confirmed successfully!', 'success');
-                        } catch (error) {
-                            sdkConsole.log(`Error confirming payment: ${error.message}`, 'error');
-                        }
-                    } else {
-                        sdkConsole.log('Error: No confirmation token found in stateContext', 'error');
+                    try {
+                        await confirmPayment(confirmationToken);
+                        sdkConsole.log('Payment confirmed successfully!', 'success');
+                    } catch (error) {
+                        sdkConsole.log(`Error confirming payment: ${error.message}`, 'error');
                     }
-                } else if (paymentRequest.state === "AUTHORIZED") {
-                    sdkConsole.log('Payment authorized!', 'success');
-                    if (paymentRequest.stateContext.authorized_payment_method) {
-                        sdkConsole.log('Authorized Payment Method:', 'success');
-                        sdkConsole.log(JSON.stringify(paymentRequest.stateContext.authorized_payment_method, null, 2), 'success');
-                    }
-                } else if (paymentRequest.state === "CANCELLED") {
-                    sdkConsole.log('Payment cancelled by user', 'warning');
-                } else if (paymentRequest.state === "ERROR") {
-                    const errorMessage = paymentRequest.stateContext.error_message || 'Unknown error';
-                    sdkConsole.log(`Payment error: ${errorMessage}`, 'error');
                 }
-            } catch (error) {
-                sdkConsole.log(`Error handling payment update: ${error.message}`, 'error');
-                console.error('Payment update error:', error);
             }
         });
 
@@ -191,34 +174,36 @@ async function initKlarna() {
             sdkConsole.log('Shipping address changed:', 'info');
             sdkConsole.log(JSON.stringify(shippingAddress, null, 2), 'info');
             
-            // Return available shipping options for the address
+            // Return shipping options in the correct format
             return {
-                shippingOptions: [
-                    {
-                        shippingOptionReference: "standard",
-                        amount: 500,
-                        displayName: "Standard Shipping",
-                        description: "3-5 business days",
-                        shippingType: "TO_DOOR"
-                    },
-                    {
-                        shippingOptionReference: "express",
-                        amount: 1000,
-                        displayName: "Express Shipping",
-                        description: "1-2 business days",
-                        shippingType: "TO_DOOR"
-                    }
-                ]
+                shippingOptions: [{
+                    shippingOptionReference: "standard",
+                    amount: 500,
+                    displayName: "Standard shipping",
+                    description: "3-5 working days",
+                    shippingType: "TO_DOOR"
+                }, {
+                    shippingOptionReference: "express",
+                    amount: 1000,
+                    displayName: "Express shipping",
+                    description: "1-2 working days",
+                    shippingType: "TO_DOOR"
+                }]
             };
         });
 
         // Handle shipping option selection
         klarna.Payment.on("shippingoptionselect", async (paymentRequest, shippingOption) => {
-            sdkConsole.log('Shipping option selected', 'info');
-            // Update order total based on selected shipping option
-            const shippingCost = shippingOption.shippingOptionReference === "express" ? 1000 : 500;
+            sdkConsole.log('Shipping option selected:', 'info');
+            sdkConsole.log(JSON.stringify(shippingOption, null, 2), 'info');
+            
+            // Calculate new total with shipping
+            const baseAmount = KLARNA_CONFIG.PAYMENT_AMOUNT;
+            const shippingAmount = shippingOption.shippingOptionReference === "express" ? 1000 : 500;
+            
+            // Return updated payment amount
             return {
-                paymentAmount: KLARNA_CONFIG.PAYMENT_AMOUNT + shippingCost
+                paymentAmount: baseAmount + shippingAmount
             };
         });
 
